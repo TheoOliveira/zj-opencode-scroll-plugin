@@ -1,0 +1,21 @@
+// layout/opencode.kdl
+// Use: zellij --layout opencode.kdl
+//
+// Layout: janela principal (opencode) + barra de status do plugin embaixo
+
+layout {
+    pane split_direction="vertical" {
+
+        // Painel principal — rode o opencode aqui
+        pane {
+            name "opencode"
+            command "opencode"
+            // ou use: focus true
+        }
+
+        // Painel do plugin de scroll (barra fina na base)
+        pane size=2 plugin=true {
+            plugin location="file:~/.config/zellij/plugins/opencode-scroll-plugin.wasm"
+        }
+    }
+}
