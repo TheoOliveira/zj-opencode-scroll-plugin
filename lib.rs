@@ -5,8 +5,8 @@ use zellij_tile::prelude::*;
 
 #[derive(Default)]
 struct State {
-    /// Whether any focused pane has "opencode" in its title
-    opencode_active: bool,
+    /// ID of the focused opencode pane
+    focused_pane_id: Option<PaneId>,
     /// Lines captured from the pane's stdout (last N lines)
     log_lines: Vec<String>,
     /// Current scroll offset (0 = bottom / most recent)
@@ -28,37 +28,45 @@ register_plugin!(State);
 
 const SCROLL_STEP: usize = 10;
 const MAX_LOG_LINES: usize = 5_000;
+const MAX_CAPTURE_LINES: usize = 100;
 
 /// Keywords that trigger auto-lock-to-top so the error is always visible
-const ERROR_KEYWORDS: &[&str] = &["ERROR", "error", "FAIL", "fail", "panic", "thread 'main'"];
+const ERROR_KEYWORDS: &[&str] = &[
+    "ERROR",
+    "error",
+    "FAIL",
+    "fail",
+    "panic",
+    "thread 'main'",
+    "COMPILATION ERROR",
+    "Build failed",
+    "error:",
+];
 
 // ─── Plugin impl ─────────────────────────────────────────────────────────────
 
 impl ZellijPlugin for State {
     fn load(&mut self, _configuration: BTreeMap<String, String>) {
-        subscribe(&[
-            EventType::PaneUpdate,
-            EventType::Key,
-        ]);
+        subscribe(&[EventType::PaneUpdate, EventType::Key]);
     }
 
     fn update(&mut self, event: Event) -> bool {
         match event {
-            // ── Pane update: detect opencode & capture new output ────────────
             Event::PaneUpdate(pane_manifest) => {
                 let focused = pane_manifest
                     .panes
                     .values()
                     .flatten()
-                    .find(|p| p.is_focused);
+                    .find(|p| p.is_focused && p.title.to_lowercase().contains("opencode"));
 
                 if let Some(pane) = focused {
-                    self.opencode_active = pane.title.to_lowercase().contains("opencode");
+                    self.focused_pane_id = Some(PaneId::Terminal(pane.id));
+                } else {
+                    self.focused_pane_id = None;
                 }
                 true
             }
 
-            // ── Key handling ─────────────────────────────────────────────────
             Event::Key(key) => self.handle_key(key),
 
             _ => false,
@@ -69,7 +77,7 @@ impl ZellijPlugin for State {
         self.rows = rows;
         self.cols = cols;
 
-        if !self.opencode_active {
+        if self.focused_pane_id.is_none() {
             self.render_idle(cols);
             return;
         }
@@ -85,56 +93,60 @@ impl ZellijPlugin for State {
 // ─── Key handling ─────────────────────────────────────────────────────────────
 
 impl State {
-    fn handle_key(&mut self, key: Key) -> bool {
+    fn handle_key(&mut self, key: KeyWithModifier) -> bool {
         if self.search_mode {
             return self.handle_search_key(key);
         }
 
         match key {
             // Fast scroll up (towards older content)
-            Key::Char('u') | Key::PageUp => {
-                scroll_up(SCROLL_STEP);
+            key if key.bare_key == BareKey::PageUp || (key.bare_key == BareKey::Char('u') && key.has_no_modifiers()) => {
+                for _ in 0..SCROLL_STEP {
+                    scroll_up();
+                }
                 self.scroll_offset = self.scroll_offset.saturating_add(SCROLL_STEP);
                 true
             }
             // Fast scroll down (towards newest content)
-            Key::Char('d') | Key::PageDown => {
-                scroll_down(SCROLL_STEP);
+            key if key.bare_key == BareKey::PageDown || (key.bare_key == BareKey::Char('d') && key.has_no_modifiers()) => {
+                for _ in 0..SCROLL_STEP {
+                    scroll_down();
+                }
                 self.scroll_offset = self.scroll_offset.saturating_sub(SCROLL_STEP);
                 true
             }
             // Jump to very top of buffer
-            Key::Char('g') | Key::Home => {
+            key if key.bare_key == BareKey::Home || key.bare_key == BareKey::Char('g') => {
                 scroll_to_top();
                 self.scroll_offset = usize::MAX;
                 true
             }
             // Jump to bottom (follow mode)
-            Key::Char('G') | Key::End => {
+            key if key.bare_key == BareKey::End || key.bare_key == BareKey::Char('G') => {
                 scroll_to_bottom();
                 self.scroll_offset = 0;
                 self.error_locked = false;
                 true
             }
             // Single line scroll
-            Key::Up => {
-                scroll_up(1);
+            key if key.bare_key == BareKey::Up => {
+                scroll_up();
                 self.scroll_offset = self.scroll_offset.saturating_add(1);
                 true
             }
-            Key::Down => {
-                scroll_down(1);
+            key if key.bare_key == BareKey::Down => {
+                scroll_down();
                 self.scroll_offset = self.scroll_offset.saturating_sub(1);
                 true
             }
             // Open search bar
-            Key::Char('/') => {
+            key if key.bare_key == BareKey::Char('/') && key.has_no_modifiers() => {
                 self.search_mode = true;
                 self.search_buf.clear();
                 true
             }
             // Unlock error lock and go to bottom
-            Key::Char('c') => {
+            key if key.bare_key == BareKey::Char('c') && key.has_no_modifiers() => {
                 self.error_locked = false;
                 self.scroll_offset = 0;
                 scroll_to_bottom();
@@ -144,22 +156,20 @@ impl State {
         }
     }
 
-    fn handle_search_key(&mut self, key: Key) -> bool {
-        match key {
-            Key::Char('\n') | Key::Esc => {
-                self.search_mode = false;
-                true
-            }
-            Key::Backspace => {
-                self.search_buf.pop();
-                true
-            }
-            Key::Char(c) => {
-                self.search_buf.push(c);
-                true
-            }
-            _ => false,
+    fn handle_search_key(&mut self, key: KeyWithModifier) -> bool {
+        if key.bare_key == BareKey::Enter || key.bare_key == BareKey::Esc {
+            self.search_mode = false;
+            return true;
         }
+        if key.bare_key == BareKey::Backspace {
+            self.search_buf.pop();
+            return true;
+        }
+        if let BareKey::Char(c) = key.bare_key {
+            self.search_buf.push(c);
+            return true;
+        }
+        false
     }
 }
 
