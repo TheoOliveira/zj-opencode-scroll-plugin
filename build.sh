@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# build.sh — compila o plugin para wasm32-wasi e copia para ~/.config/zellij/plugins/
+# build.sh — compila o plugin para wasm32-wasip1 e copia para ~/.config/zellij/plugins/
 
 set -euo pipefail
 
 PLUGIN_NAME="opencode-scroll-plugin"
-TARGET="wasm32-wasi"
+TARGET="wasm32-wasip1"
 ZELLIJ_PLUGINS_DIR="${HOME}/.config/zellij/plugins"
 
 echo "🔧 Compilando ${PLUGIN_NAME}..."

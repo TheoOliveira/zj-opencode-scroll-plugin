@@ -28,9 +28,9 @@ A Zellij terminal multiplexer plugin that provides custom scrolling, auto-scroll
 
 ### Prerequisites
 
-- Rust toolchain with `wasm32-wasi` target:
+- Rust toolchain with `wasm32-wasip1` target:
   ```bash
-  rustup target add wasm32-wasi
+  rustup target add wasm32-wasip1
   ```
 - Zellij 0.42+
 
@@ -71,7 +71,7 @@ No configuration required. The plugin auto-detects any pane with "opencode" in i
 cargo check
 
 # Build for release
-cargo build --release --target wasm32-wasi
+cargo build --release --target wasm32-wasip1
 ```
 
 ## License

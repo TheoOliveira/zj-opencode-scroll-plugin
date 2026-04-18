@@ -9,7 +9,7 @@ A WebAssembly plugin for the Zellij terminal multiplexer that provides custom sc
 
 ### Constraints
 
-- **Tech Stack**: Rust, WebAssembly (`wasm32-wasi`), and Zellij Plugin API.
+- **Tech Stack**: Rust, WebAssembly (`wasm32-wasip1`), and Zellij Plugin API.
 - **Platform**: Must run seamlessly within Zellij multiplexer environments.
 - **Distribution**: Must provide pre-compiled `.wasm` files via GitHub releases so users don't have to compile from source.
 <!-- GSD:project-end -->
@@ -22,7 +22,7 @@ A WebAssembly plugin for the Zellij terminal multiplexer that provides custom sc
 - Bash - Build and deployment script in `build.sh`
 - KDL - Zellij layout configuration in `opencode.kdl`
 ## Runtime
-- Zellij Plugin System (WebAssembly / `wasm32-wasi`)
+- Zellij Plugin System (WebAssembly / `wasm32-wasip1`)
 - Cargo (Rust)
 - Lockfile: Not present (`Cargo.lock` is missing or not tracked)
 ## Frameworks
@@ -38,7 +38,7 @@ A WebAssembly plugin for the Zellij terminal multiplexer that provides custom sc
 - `Cargo.toml` - Rust crate configuration and dependency declaration
 - `opencode.kdl` - Zellij layout defining pane setup and plugin loading
 ## Platform Requirements
-- Rust toolchain with `wasm32-wasi` target added (`rustup target add wasm32-wasi`)
+- Rust toolchain with `wasm32-wasip1` target added (`rustup target add wasm32-wasip1`)
 - Zellij 0.42.1+ (matching the `zellij-tile` dependency version)
 - Zellij terminal multiplexer (loads the `.wasm` binary as a plugin)
 <!-- GSD:stack-end -->

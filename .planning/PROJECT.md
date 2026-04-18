@@ -34,7 +34,7 @@ This is a brownfield project. The core Rust logic for the Zellij plugin is alrea
 
 ## Constraints
 
-- **Tech Stack**: Rust, WebAssembly (`wasm32-wasi`), and Zellij Plugin API.
+- **Tech Stack**: Rust, WebAssembly (`wasm32-wasip1`), and Zellij Plugin API.
 - **Platform**: Must run seamlessly within Zellij multiplexer environments.
 - **Distribution**: Must provide pre-compiled `.wasm` files via GitHub releases so users don't have to compile from source.
 
