@@ -4,13 +4,14 @@
 set -euo pipefail
 
 PLUGIN_NAME="opencode-scroll-plugin"
+WASM_BASENAME="opencode_scroll_plugin"
 TARGET="wasm32-wasip1"
 ZELLIJ_PLUGINS_DIR="${HOME}/.config/zellij/plugins"
 
 echo "🔧 Compilando ${PLUGIN_NAME}..."
 cargo build --release --target ${TARGET}
 
-WASM_SRC="target/${TARGET}/release/${PLUGIN_NAME}.wasm"
+WASM_SRC="target/${TARGET}/release/${WASM_BASENAME}.wasm"
 
 echo "📦 Copiando para ${ZELLIJ_PLUGINS_DIR}/"
 mkdir -p "${ZELLIJ_PLUGINS_DIR}"
